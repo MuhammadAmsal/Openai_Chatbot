@@ -7,20 +7,6 @@ import requests
 
 load_dotenv()
 
-@function_tool
-def get_weather(city:str)->str:
-    """
-    Get the current weather for a given city. and provide  weather details and humidity for any city
-    """
-    
-    API_Key = '5be9ec2f20a42c801a00ede872a61e48'
-    base_url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_Key}&units=metric"
-    weather_data = requests.get(base_url).json()
-    return f"The current weather in {city} is {weather_data['main']['temp']}°C."
-
-
-
-
 gemini_api_key = os.getenv("GEMINI_API_KEY")
 
 external_client = AsyncOpenAI(
@@ -39,27 +25,38 @@ config = RunConfig(
         tracing_disabled=True
     )
 
-agent1 = Agent(
+@function_tool
+def get_weather(city:str)->str:
+    """
+    Get the current weather for a given city. and provide  weather details and humidity for any city
+    """
+    
+    API_Key = '5be9ec2f20a42c801a00ede872a61e48'
+    base_url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_Key}&units=metric"
+    weather_data = requests.get(base_url).json()
+    return f"The current weather in {city} is {weather_data['main']['temp']}°C."
+
+weather_agent = Agent(
         name="Assistant", 
-        instructions="You are a Amsal Assistant.", 
+        instructions="You are a weather agent.", 
         model=model,
         tools=[get_weather]
         )
 
 
-
-
-
-
+agent1 = Agent(
+        name="Assistant", 
+        instructions="You are a Amsal Assistant.", 
+        model=model,
+        handoffs=[weather_agent]
+        
+        )
 
 @cl.on_chat_start
 async def start():
    # Initialize an empty chat history in the session.
     cl.user_session.set("history", [])
     await cl.Message(content="Hi ! How can I help you today?").send()
-
-
-
 
 
 @cl.on_message
